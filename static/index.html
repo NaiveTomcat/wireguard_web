@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WireGuard Web Interface</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: none;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        .nav-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: none;
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.2);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .nav-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 8px 25px rgba(31, 38, 135, 0.3);
+            text-decoration: none;
+            color: inherit;
+        }
+        .nav-icon {
+            font-size: 3rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .nav-title {
+            color: #333;
+            font-weight: 600;
+        }
+        .nav-description {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .welcome-section {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            color: white;
+            text-align: center;
+        }
+        .welcome-section h2 {
+            font-weight: 300;
+            margin-bottom: 1rem;
+        }
+        .welcome-section p {
+            opacity: 0.9;
+        }
+        .status-badge {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .fade-in {
+            animation: fadeIn 0.8s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .footer-text {
+            color: rgba(255, 255, 255, 0.7);
+            text-align: center;
+            margin-top: 3rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Welcome Section -->
+        <div class="welcome-section fade-in">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div class="flex-grow-1 text-center">
+                    <h2>
+                        <i class="bi bi-shield-check me-3"></i>
+                        WireGuard Web Interface
+                    </h2>
+                    <p class="mb-3">Secure VPN management made simple</p>
+                    <span class="badge status-badge">
+                        <i class="bi bi-circle-fill text-success me-2"></i>
+                        Service Active
+                    </span>
+                </div>
+                <div class="d-flex gap-2">
+                    <a href="/logout" class="btn btn-outline-light btn-sm" title="Logout">
+                        <i class="bi bi-box-arrow-right me-1"></i>
+                        Logout
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Cards -->
+        <div class="row g-4">
+            <!-- Login Card -->
+            <div class="col-lg-4 col-md-6">
+                <a href="/login" class="text-decoration-none">
+                    <div class="card nav-card h-100 fade-in stagger-1">
+                        <div class="card-body text-center p-4">
+                            <div class="nav-icon mb-3">
+                                <i class="bi bi-person-lock"></i>
+                            </div>
+                            <h5 class="nav-title mb-2">Login</h5>
+                            <p class="nav-description mb-0">
+                                Authenticate to access the WireGuard management interface
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 text-center pb-4">
+                            <span class="badge bg-primary">
+                                <i class="bi bi-arrow-right me-1"></i>
+                                Access
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- View Peers Card -->
+            <div class="col-lg-4 col-md-6">
+                <a href="/peers" class="text-decoration-none">
+                    <div class="card nav-card h-100 fade-in stagger-2">
+                        <div class="card-body text-center p-4">
+                            <div class="nav-icon mb-3">
+                                <i class="bi bi-people"></i>
+                            </div>
+                            <h5 class="nav-title mb-2">View Peers</h5>
+                            <p class="nav-description mb-0">
+                                Monitor and manage existing WireGuard peer connections
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 text-center pb-4">
+                            <span class="badge bg-info">
+                                <i class="bi bi-eye me-1"></i>
+                                Monitor
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Add Peer Card -->
+            <div class="col-lg-4 col-md-6">
+                <a href="/add_peer" class="text-decoration-none">
+                    <div class="card nav-card h-100 fade-in stagger-3">
+                        <div class="card-body text-center p-4">
+                            <div class="nav-icon mb-3">
+                                <i class="bi bi-person-plus"></i>
+                            </div>
+                            <h5 class="nav-title mb-2">Add Peer</h5>
+                            <p class="nav-description mb-0">
+                                Create new peer configurations for client connections
+                            </p>
+                        </div>
+                        <div class="card-footer bg-transparent border-0 text-center pb-4">
+                            <span class="badge bg-success">
+                                <i class="bi bi-plus-circle me-1"></i>
+                                Create
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Additional Info Section -->
+        <div class="row mt-5">
+            <div class="col-12">
+                <div class="card main-card fade-in">
+                    <div class="card-header text-center py-3">
+                        <h5 class="mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Quick Start Guide
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-shrink-0">
+                                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <strong>1</strong>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h6 class="mb-1">Login</h6>
+                                        <p class="text-muted mb-0 small">
+                                            Start by logging in with your credentials to access the management interface.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-shrink-0">
+                                        <div class="rounded-circle bg-info text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <strong>2</strong>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h6 class="mb-1">Add Peers</h6>
+                                        <p class="text-muted mb-0 small">
+                                            Create new peer configurations by specifying client IP addresses and descriptions.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="d-flex align-items-start">
+                                    <div class="flex-shrink-0">
+                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                            <strong>3</strong>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1 ms-3">
+                                        <h6 class="mb-1">Monitor</h6>
+                                        <p class="text-muted mb-0 small">
+                                            View and manage existing peer connections through the peers interface.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-text fade-in">
+            <p class="mb-0">
+                <i class="bi bi-shield-shaded me-2"></i>
+                Powered by WireGuard - Secure, Fast, and Modern VPN
+            </p>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Add some interactive enhancements
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click feedback for navigation cards
+            const navCards = document.querySelectorAll('.nav-card');
+            
+            navCards.forEach(card => {
+                card.addEventListener('mousedown', function() {
+                    this.style.transform = 'translateY(-4px) scale(0.98)';
+                });
+                
+                card.addEventListener('mouseup', function() {
+                    this.style.transform = 'translateY(-8px) scale(1)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+
+            // Simulate service status check (you can replace this with actual status checking)
+            setTimeout(() => {
+                const statusBadge = document.querySelector('.status-badge');
+                if (statusBadge) {
+                    statusBadge.innerHTML = '<i class="bi bi-circle-fill text-success me-2"></i>All Systems Operational';
+                }
+            }, 2000);
+        });
+
+        // Add keyboard navigation support
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                const focusedElement = document.activeElement;
+                if (focusedElement.classList.contains('nav-card')) {
+                    e.preventDefault();
+                    focusedElement.click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

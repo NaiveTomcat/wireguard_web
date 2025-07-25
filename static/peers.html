@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peers - WireGuard Web</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: none;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        .peer-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border: none;
+            box-shadow: 0 4px 16px rgba(31, 38, 135, 0.2);
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        .peer-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(31, 38, 135, 0.3);
+            border-left-color: #667eea;
+        }
+        .peer-card.active {
+            border-left-color: #28a745;
+            background: rgba(40, 167, 69, 0.05);
+        }
+        .peer-card.inactive {
+            border-left-color: #6c757d;
+            background: rgba(108, 117, 125, 0.05);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            transition: transform 0.2s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .btn-outline-danger {
+            transition: all 0.3s ease;
+        }
+        .btn-outline-danger:hover {
+            transform: translateY(-2px);
+        }
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .public-key {
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            background: rgba(248, 249, 250, 0.8);
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            word-break: break-all;
+        }
+        .stats-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        .search-box {
+            border-radius: 25px;
+            border: 2px solid #e9ecef;
+            padding: 12px 20px;
+            transition: all 0.3s ease;
+        }
+        .search-box:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+            transform: translateY(-2px);
+        }
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6c757d;
+        }
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+        .back-link {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        .back-link:hover {
+            color: white;
+            transform: translateX(-5px);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Back to Home Link -->
+        <a href="/" class="back-link fade-in">
+            <i class="bi bi-arrow-left me-2"></i>
+            Back to Home
+        </a>
+        
+        <div class="row">
+            <div class="col-12">
+                <div class="card main-card fade-in">
+                    <div class="card-header">
+                        <div class="row align-items-center">
+                            <div class="col-md-6">
+                                <h1 class="mb-0">
+                                    <i class="bi bi-people me-2"></i>
+                                    WireGuard Peers
+                                </h1>
+                                <p class="mb-0 mt-1 opacity-75">Manage your VPN connections</p>
+                            </div>
+                            <div class="col-md-6 text-md-end mt-3 mt-md-0">
+                                <span id="peersCount" class="badge stats-badge me-2">
+                                    <i class="bi bi-circle-fill text-success me-1"></i>
+                                    Loading...
+                                </span>
+                                <a href="/add_peer" class="btn btn-light btn-sm me-2">
+                                    <i class="bi bi-plus-circle me-1"></i>
+                                    Add Peer
+                                </a>
+                                <div class="btn-group">
+                                    <a href="/" class="btn btn-outline-light btn-sm" title="Home">
+                                        <i class="bi bi-house"></i>
+                                    </a>
+                                    <a href="/logout" class="btn btn-outline-light btn-sm" title="Logout">
+                                        <i class="bi bi-box-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        <!-- Search and Filter Controls -->
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0" style="border-radius: 25px 0 0 25px;">
+                                        <i class="bi bi-search"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control search-box border-start-0" 
+                                           id="searchInput"
+                                           placeholder="Search peers by comment, IP, or public key..."
+                                           style="border-radius: 0 25px 25px 0;">
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-md-end mt-2 mt-md-0">
+                                <button type="button" class="btn btn-outline-secondary me-2" onclick="refreshPeers()">
+                                    <i class="bi bi-arrow-clockwise me-1"></i>
+                                    Refresh
+                                </button>
+                                <div class="btn-group" role="group">
+                                    <input type="radio" class="btn-check" name="filterType" id="filterAll" value="all" checked>
+                                    <label class="btn btn-outline-primary" for="filterAll">All</label>
+                                    
+                                    <input type="radio" class="btn-check" name="filterType" id="filterActive" value="active">
+                                    <label class="btn btn-outline-primary" for="filterActive">Active</label>
+                                    
+                                    <input type="radio" class="btn-check" name="filterType" id="filterInactive" value="inactive">
+                                    <label class="btn btn-outline-primary" for="filterInactive">Inactive</label>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Peers List Container -->
+                        <div id="peersContainer" class="position-relative">
+                            <!-- Loading Overlay -->
+                            <div id="loadingOverlay" class="loading-overlay">
+                                <div class="text-center">
+                                    <div class="spinner-border text-primary mb-3" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <div class="text-muted">Loading peers...</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Peers will be populated here -->
+                            <div id="peersList" class="row g-3">
+                                <!-- Peer cards will be inserted here by JavaScript -->
+                            </div>
+                            
+                            <!-- Empty State -->
+                            <div id="emptyState" class="empty-state" style="display: none;">
+                                <i class="bi bi-people"></i>
+                                <h4>No Peers Found</h4>
+                                <p class="text-muted">There are no peers configured yet or none match your search criteria.</p>
+                                <a href="/add_peer" class="btn btn-primary">
+                                    <i class="bi bi-plus-circle me-1"></i>
+                                    Add Your First Peer
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Alert for messages -->
+        <div id="alertContainer" class="position-fixed top-0 end-0 p-3" style="z-index: 1050;">
+            <!-- Alerts will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let allPeers = [];
+        let filteredPeers = [];
+        
+        // Load peers when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadPeers();
+            setupEventListeners();
+        });
+        
+        function setupEventListeners() {
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase().trim();
+                filterPeers(searchTerm);
+            });
+            
+            // Filter radio buttons
+            document.querySelectorAll('input[name="filterType"]').forEach(radio => {
+                radio.addEventListener('change', function() {
+                    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+                    filterPeers(searchTerm);
+                });
+            });
+        }
+        
+        function loadPeers() {
+            showLoading(true);
+            
+            fetch('/peers', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error('Failed to fetch peers');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                allPeers = data;
+                filterPeers(''); // Apply current filters
+                updatePeersCount();
+            })
+            .catch(error => {
+                console.error('Error loading peers:', error);
+                showAlert('danger', 'Error', 'Failed to load peers: ' + error.message);
+                document.getElementById('emptyState').style.display = 'block';
+            })
+            .finally(() => {
+                showLoading(false);
+            });
+        }
+        
+        function filterPeers(searchTerm = '') {
+            const filterType = document.querySelector('input[name="filterType"]:checked').value;
+            
+            filteredPeers = allPeers.filter(peer => {
+                // Search filter
+                const matchesSearch = searchTerm === '' || 
+                    peer.comment.toLowerCase().includes(searchTerm) ||
+                    peer.IP.toLowerCase().includes(searchTerm) ||
+                    peer.public_key.toLowerCase().includes(searchTerm);
+                
+                // Status filter (for now, we'll assume all peers are active since we don't have status info)
+                const matchesFilter = filterType === 'all' || 
+                    (filterType === 'active' && true) || // Placeholder - all considered active
+                    (filterType === 'inactive' && false); // Placeholder - none considered inactive
+                
+                return matchesSearch && matchesFilter;
+            });
+            
+            renderPeers();
+        }
+        
+        function renderPeers() {
+            const peersList = document.getElementById('peersList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (filteredPeers.length === 0) {
+                peersList.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            const peersHTML = filteredPeers.map((peer, index) => {
+                const staggerClass = `stagger-${(index % 3) + 1}`;
+                const comment = peer.comment.replace(/^#\s*/, ''); // Remove leading # from comment
+                const isActive = true; // Placeholder - assume all active for now
+                const statusClass = isActive ? 'active' : 'inactive';
+                const statusIcon = isActive ? 'bi-circle-fill text-success' : 'bi-circle text-muted';
+                const statusText = isActive ? 'Active' : 'Inactive';
+                
+                return `
+                    <div class="col-lg-6 col-xl-4">
+                        <div class="card peer-card ${statusClass} fade-in ${staggerClass}">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-person-circle me-2 fs-4 text-primary"></i>
+                                        <div>
+                                            <h6 class="mb-0 fw-semibold">${escapeHtml(comment)}</h6>
+                                            <small class="text-muted">
+                                                <i class="${statusIcon} me-1"></i>
+                                                ${statusText}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="dropdown">
+                                        <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                            <i class="bi bi-three-dots-vertical"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li><a class="dropdown-item" href="#" onclick="copyPublicKey('${peer.public_key}')">
+                                                <i class="bi bi-clipboard me-2"></i>Copy Public Key</a></li>
+                                            <li><a class="dropdown-item" href="#" onclick="copyIP('${peer.IP}')">
+                                                <i class="bi bi-clipboard me-2"></i>Copy IP Address</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item text-danger" href="#" onclick="confirmDeletePeer('${peer.public_key}', '${escapeHtml(comment)}')">
+                                                <i class="bi bi-trash me-2"></i>Delete Peer</a></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="small text-muted fw-semibold">IP Address</label>
+                                    <div class="d-flex align-items-center">
+                                        <i class="bi bi-hdd-network me-2 text-info"></i>
+                                        <code class="text-dark">${peer.IP}</code>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-0">
+                                    <label class="small text-muted fw-semibold">Public Key</label>
+                                    <div class="public-key">
+                                        ${peer.public_key}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            peersList.innerHTML = peersHTML;
+        }
+        
+        function updatePeersCount() {
+            const count = allPeers.length;
+            const activeCount = allPeers.length; // Placeholder - assume all active
+            document.getElementById('peersCount').innerHTML = `
+                <i class="bi bi-circle-fill text-success me-1"></i>
+                ${count} Peer${count !== 1 ? 's' : ''} (${activeCount} Active)
+            `;
+        }
+        
+        function refreshPeers() {
+            loadPeers();
+            showAlert('info', 'Refreshed', 'Peers list has been updated.');
+        }
+        
+        function copyPublicKey(publicKey) {
+            navigator.clipboard.writeText(publicKey).then(() => {
+                showAlert('success', 'Copied', 'Public key copied to clipboard.');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                showAlert('warning', 'Copy Failed', 'Could not copy to clipboard.');
+            });
+        }
+        
+        function copyIP(ip) {
+            navigator.clipboard.writeText(ip).then(() => {
+                showAlert('success', 'Copied', 'IP address copied to clipboard.');
+            }).catch(err => {
+                console.error('Failed to copy: ', err);
+                showAlert('warning', 'Copy Failed', 'Could not copy to clipboard.');
+            });
+        }
+        
+        function confirmDeletePeer(publicKey, comment) {
+            // Create a more sophisticated confirmation dialog
+            const cleanComment = comment.replace(/^#\s*\w+\s*/, ''); // Remove username prefix for display
+            const peer = allPeers.find(p => p.public_key === publicKey);
+            
+            if (!peer) {
+                showAlert('danger', 'Error', 'Peer not found in current list.');
+                return;
+            }
+            
+            // Use a more detailed confirmation dialog
+            const confirmationMessage = `⚠️ DELETE PEER CONFIRMATION\n\n` +
+                `Are you sure you want to permanently delete this peer?\n\n` +
+                `Peer: "${cleanComment}"\n` +
+                `IP Address: ${peer.IP}\n` +
+                `Public Key: ${publicKey.substring(0, 20)}...\n\n` +
+                `❌ This action CANNOT be undone!\n` +
+                `❌ The peer will lose VPN access immediately!\n\n` +
+                `Type 'DELETE' in the next prompt to confirm deletion.`;
+            
+            if (confirm(confirmationMessage)) {
+                const finalConfirm = prompt(`To confirm deletion of peer "${cleanComment}", type DELETE (in capital letters):`);
+                if (finalConfirm === 'DELETE') {
+                    deletePeer(publicKey, cleanComment);
+                } else {
+                    showAlert('info', 'Deletion Cancelled', 'Peer deletion was cancelled.');
+                }
+            }
+        }
+        
+        function deletePeer(publicKey, comment) {
+            // Show loading state for the specific peer card
+            const peerCards = document.querySelectorAll('.peer-card');
+            let targetCard = null;
+            
+            // Find the card being deleted and add loading state
+            peerCards.forEach(card => {
+                if (card.innerHTML.includes(publicKey)) {
+                    targetCard = card;
+                    card.style.opacity = '0.6';
+                    card.style.pointerEvents = 'none';
+                    
+                    // Add loading spinner to the card
+                    const loadingSpinner = document.createElement('div');
+                    loadingSpinner.className = 'position-absolute top-50 start-50 translate-middle';
+                    loadingSpinner.innerHTML = `
+                        <div class="spinner-border text-danger" role="status">
+                            <span class="visually-hidden">Deleting...</span>
+                        </div>
+                    `;
+                    loadingSpinner.id = 'delete-spinner-' + Date.now();
+                    card.style.position = 'relative';
+                    card.appendChild(loadingSpinner);
+                }
+            });
+            
+            showAlert('info', 'Deleting Peer', `Removing peer "${comment}" from configuration...`);
+            
+            // Make the delete request
+            fetch('/del_peer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    public_key: publicKey
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        return;
+                    }
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Success - show success message and reload peers
+                showAlert('success', 'Peer Deleted Successfully', `Peer "${comment}" has been permanently removed from the WireGuard configuration.`);
+                
+                // Remove the peer from local array
+                allPeers = allPeers.filter(peer => peer.public_key !== publicKey);
+                
+                // Refresh the display
+                const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
+                filterPeers(searchTerm);
+                updatePeersCount();
+                
+                // Remove the loading spinner
+                if (targetCard) {
+                    const spinner = targetCard.querySelector('[id^="delete-spinner"]');
+                    if (spinner) spinner.remove();
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting peer:', error);
+                const errorMessage = error.error || error.message || 'Failed to delete peer';
+                showAlert('danger', 'Delete Failed', `Failed to delete peer "${comment}": ${errorMessage}`);
+                
+                // Restore the card state on error
+                if (targetCard) {
+                    targetCard.style.opacity = '1';
+                    targetCard.style.pointerEvents = 'auto';
+                    
+                    // Remove the loading spinner
+                    const spinner = targetCard.querySelector('[id^="delete-spinner"]');
+                    if (spinner) spinner.remove();
+                }
+            });
+        }
+        
+        function showLoading(show) {
+            const overlay = document.getElementById('loadingOverlay');
+            overlay.style.display = show ? 'flex' : 'none';
+        }
+        
+        function showAlert(type, title, message) {
+            const alertId = 'alert-' + Date.now();
+            const alertHTML = `
+                <div id="${alertId}" class="alert alert-${type} alert-dismissible fade show" role="alert">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-${getAlertIcon(type)} me-2"></i>
+                        <div>
+                            <strong>${title}</strong>
+                            <div class="small">${message}</div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            document.getElementById('alertContainer').insertAdjacentHTML('beforeend', alertHTML);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                const alertElement = document.getElementById(alertId);
+                if (alertElement) {
+                    alertElement.remove();
+                }
+            }, 5000);
+        }
+        
+        function getAlertIcon(type) {
+            const icons = {
+                'success': 'check-circle-fill',
+                'danger': 'x-circle-fill',
+                'warning': 'exclamation-triangle-fill',
+                'info': 'info-circle-fill'
+            };
+            return icons[type] || 'info-circle-fill';
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>

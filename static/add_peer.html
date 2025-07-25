@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Peer - WireGuard Web</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
+        .main-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: none;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+        }
+        .form-control:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            transition: transform 0.2s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        .config-output {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+        .spinner-border-sm {
+            width: 1rem;
+            height: 1rem;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .ip-validation-feedback {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="card main-card">
+                    <div class="card-header py-4">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="text-center flex-grow-1">
+                                <h1 class="mb-0">
+                                    <i class="bi bi-shield-plus me-2"></i>
+                                    Add WireGuard Peer
+                                </h1>
+                                <p class="mb-0 mt-2 opacity-75">Configure a new client connection</p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="/" class="btn btn-outline-light btn-sm" title="Home">
+                                    <i class="bi bi-house"></i>
+                                </a>
+                                <a href="/logout" class="btn btn-outline-light btn-sm" title="Logout">
+                                    <i class="bi bi-box-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-body p-4">
+                        <form id="addPeerForm">
+                            <div class="mb-4">
+                                <label for="clientaddr" class="form-label">
+                                    <i class="bi bi-router me-2"></i>Client IP Address
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-hdd-network"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control form-control-lg" 
+                                           id="clientaddr" 
+                                           name="clientaddr" 
+                                           required 
+                                           placeholder="e.g., 192.168.1.100"
+                                           pattern="^(\d{1,3}\.){3}\d{1,3}$">
+                                </div>
+                                <div id="ipValidationFeedback" class="ip-validation-feedback"></div>
+                                <div class="form-text">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Enter the client IP address (e.g., 192.168.1.100)
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="comment" class="form-label">
+                                    <i class="bi bi-chat-left-text me-2"></i>Comment
+                                    <span class="text-muted">(optional)</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="bi bi-tag"></i>
+                                    </span>
+                                    <input type="text" 
+                                           class="form-control form-control-lg" 
+                                           id="comment" 
+                                           name="comment" 
+                                           placeholder="Description for this peer (e.g., John's laptop)">
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" id="submitBtn" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    <span id="submitBtnText">Add Peer</span>
+                                    <span id="submitSpinner" class="spinner-border spinner-border-sm ms-2" style="display: none;"></span>
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <!-- Result Alert -->
+                        <div id="resultAlert" class="mt-4" style="display: none;">
+                            <div id="alertContent" class="alert fade-in" role="alert">
+                                <div class="d-flex align-items-center">
+                                    <i id="alertIcon" class="me-2 fs-5"></i>
+                                    <div>
+                                        <strong id="alertTitle"></strong>
+                                        <div id="alertMessage"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Configuration Output -->
+                            <div id="configCard" class="card mt-3" style="display: none;">
+                                <div class="card-header bg-light">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="bi bi-file-earmark-code me-2"></i>
+                                            <strong>Client Configuration</strong>
+                                        </div>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="copyToClipboard()">
+                                            <i class="bi bi-clipboard me-1"></i>Copy
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="card-body p-0">
+                                    <pre id="configOutput" class="config-output p-3 mb-0"></pre>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.getElementById('addPeerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const submitBtnText = document.getElementById('submitBtnText');
+            const submitSpinner = document.getElementById('submitSpinner');
+            
+            // Get form data
+            const clientaddr = document.getElementById('clientaddr').value.trim();
+            const comment = document.getElementById('comment').value.trim();
+            
+            // Validate client address
+            if (!clientaddr) {
+                showAlert('danger', 'Validation Error', 'Client IP address is required.', 'bi-exclamation-triangle-fill');
+                return;
+            }
+            
+            // Show loading state
+            submitBtnText.textContent = 'Adding Peer...';
+            submitBtn.disabled = true;
+            submitSpinner.style.display = 'inline-block';
+            showAlert('info', 'Processing', 'Adding peer to WireGuard configuration...', 'bi-hourglass-split');
+            
+            // Prepare data for AJAX request
+            const data = {
+                clientaddr: clientaddr,
+                comment: comment || 'None'
+            };
+            
+            // Make AJAX request
+            fetch('/add_peer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => Promise.reject(err));
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Success response
+                if (data.message && data.client_config) {
+                    showAlert('success', 'Success!', data.message, 'bi-check-circle-fill');
+                    
+                    // Decode and display the client configuration
+                    try {
+                        const decodedConfig = atob(data.client_config);
+                        document.getElementById('configOutput').textContent = decodedConfig;
+                        document.getElementById('configCard').style.display = 'block';
+                    } catch (e) {
+                        console.error('Error decoding client config:', e);
+                        document.getElementById('configOutput').textContent = 'Error decoding client configuration';
+                        document.getElementById('configCard').style.display = 'block';
+                    }
+                } else {
+                    showAlert('warning', 'Unexpected Response', 'Received unexpected response format from server.', 'bi-exclamation-triangle-fill');
+                }
+                
+                // Reset form
+                document.getElementById('addPeerForm').reset();
+                clearValidationFeedback();
+            })
+            .catch(error => {
+                // Error response
+                console.error('Error:', error);
+                const errorMessage = error.error || error.message || 'An unexpected error occurred';
+                showAlert('danger', 'Error', errorMessage, 'bi-x-circle-fill');
+            })
+            .finally(() => {
+                // Reset button state
+                submitBtnText.textContent = 'Add Peer';
+                submitBtn.disabled = false;
+                submitSpinner.style.display = 'none';
+            });
+        });
+        
+        function showAlert(type, title, message, icon) {
+            const resultAlert = document.getElementById('resultAlert');
+            const alertContent = document.getElementById('alertContent');
+            const alertIcon = document.getElementById('alertIcon');
+            const alertTitle = document.getElementById('alertTitle');
+            const alertMessage = document.getElementById('alertMessage');
+            const configCard = document.getElementById('configCard');
+            
+            // Clear previous classes and set new ones
+            alertContent.className = `alert alert-${type} fade-in`;
+            alertIcon.className = `${icon} me-2 fs-5`;
+            alertTitle.textContent = title;
+            alertMessage.textContent = message;
+            
+            // Hide config card for non-success alerts
+            if (type !== 'success') {
+                configCard.style.display = 'none';
+            }
+            
+            // Show alert with animation
+            resultAlert.style.display = 'block';
+            
+            // Auto-hide info alerts after 3 seconds
+            if (type === 'info') {
+                setTimeout(() => {
+                    if (alertContent.classList.contains('alert-info')) {
+                        resultAlert.style.display = 'none';
+                    }
+                }, 3000);
+            }
+        }
+        
+        function copyToClipboard() {
+            const configText = document.getElementById('configOutput').textContent;
+            navigator.clipboard.writeText(configText).then(() => {
+                // Show temporary success message
+                const copyBtn = event.target.closest('button');
+                const originalContent = copyBtn.innerHTML;
+                copyBtn.innerHTML = '<i class="bi bi-check me-1"></i>Copied!';
+                copyBtn.classList.remove('btn-outline-secondary');
+                copyBtn.classList.add('btn-success');
+                
+                setTimeout(() => {
+                    copyBtn.innerHTML = originalContent;
+                    copyBtn.classList.remove('btn-success');
+                    copyBtn.classList.add('btn-outline-secondary');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy text: ', err);
+                showAlert('warning', 'Copy Failed', 'Could not copy configuration to clipboard. Please copy manually.', 'bi-exclamation-triangle-fill');
+            });
+        }
+        
+        function clearValidationFeedback() {
+            const feedback = document.getElementById('ipValidationFeedback');
+            const input = document.getElementById('clientaddr');
+            feedback.textContent = '';
+            input.classList.remove('is-invalid', 'is-valid');
+        }
+        
+        // Enhanced real-time validation for IP address format
+        document.getElementById('clientaddr').addEventListener('input', function(e) {
+            const value = e.target.value;
+            const feedback = document.getElementById('ipValidationFeedback');
+            const ipPattern = /^(\d{1,3}\.){3}\d{1,3}$/;
+            
+            if (value === '') {
+                e.target.classList.remove('is-invalid', 'is-valid');
+                feedback.textContent = '';
+                return;
+            }
+            
+            if (ipPattern.test(value)) {
+                // Additional validation for IP ranges
+                const parts = value.split('.').map(Number);
+                
+                const isValidIP = parts.every(part => part >= 0 && part <= 255);
+                
+                if (isValidIP) {
+                    e.target.classList.remove('is-invalid');
+                    e.target.classList.add('is-valid');
+                    feedback.innerHTML = '<i class="bi bi-check-circle text-success me-1"></i><span class="text-success">Valid IP address format</span>';
+                } else {
+                    e.target.classList.remove('is-valid');
+                    e.target.classList.add('is-invalid');
+                    feedback.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i><span class="text-danger">Invalid IP address - each octet must be 0-255</span>';
+                }
+            } else {
+                e.target.classList.remove('is-valid');
+                e.target.classList.add('is-invalid');
+                feedback.innerHTML = '<i class="bi bi-x-circle text-danger me-1"></i><span class="text-danger">Please use format: 192.168.1.100</span>';
+            }
+        });
+        
+        // Clear validation on focus
+        document.getElementById('clientaddr').addEventListener('focus', function(e) {
+            const feedback = document.getElementById('ipValidationFeedback');
+            if (e.target.classList.contains('is-invalid')) {
+                feedback.innerHTML = '<i class="bi bi-info-circle text-primary me-1"></i><span class="text-primary">Enter IP address (e.g., 192.168.1.100)</span>';
+            }
+        });
+    </script>
+</body>
+</html>

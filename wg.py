@@ -1,7 +1,8 @@
-import wgconfig as wgc
-from wgconfig import wgexec as wgexec
+import wgconfig as wgc  # type: ignore
+from wgconfig import wgexec as wgexec  # type: ignore
 import ipaddress
 import os
+import configparser
 
 ClientTemplate = """[Interface]
 PrivateKey = {privkey}
@@ -23,13 +24,42 @@ def is_valid_ipv4(ip_string):
         return True
     except ipaddress.AddressValueError:
         return False
-
-def update_config_file(config:dict, clientaddr:str, comment=None):
+    
+def get_peers_comment(config:configparser.SectionProxy):
     """
-    Update the WireGuard configuration file with given config and client address.
+    Get the comments of all peers in the WireGuard configuration.
     
     Args:
-        config (dict): Configuration dictionary containing keys like 'serverpubkey', 'lancidr', 'serverendpoint', and path to the WireGuard config file.
+        config (configparser.SectionProxy): Configuration section proxy object for the WireGuard config file.
+    
+    Returns:
+        list: A list of tuples containing the peer public key, its IP Address and its comment.
+
+    Raises:
+        ValueError: If the configuration file path is not provided.
+        Exception: If there is an error reading the configuration file.
+    """
+    if not config.get('WireGuardInterface'):
+        raise ValueError("Configuration file path must be provided. Current value: {}".format(config.get('WireGuardInterface')))
+    if not os.path.exists(config['WireGuardInterface']):
+        raise ValueError("Configuration file does not exist. current value: {}".format(config['WireGuardInterface']))
+    try:
+        serverconfig = wgc.WGConfig(config['WireGuardInterface'])
+        serverconfig.read_file()
+        peers = serverconfig.get_peers(keys_only=False, include_details=True)
+        peerinfo = [(peer, peers.get(peer, {}).get('AllowedIPs'), peers.get(peer, {}).get('_rawdata')[0].strip()) for peer in peers]
+        return peerinfo
+    except Exception as e:
+        raise Exception(f"Error reading WireGuard configuration: {e}")
+        
+    
+
+def add_peer(config:configparser.SectionProxy, clientaddr:str, comment=None):
+    """
+    Add a new peer to the WireGuard configuration.
+    
+    Args:
+        config (configparser.SectionProxy): Configuration section proxy object for the WireGuard config file.
         clientaddr (str): The address to be assigned to the client.
 
     Returns:
@@ -40,37 +70,69 @@ def update_config_file(config:dict, clientaddr:str, comment=None):
         Exception: If there is an error while generating the key pair or reading/writing the configuration file.
     """
 
-    if not config.get('wgconfigfile') or not clientaddr or not is_valid_ipv4(clientaddr):
+    if not config.get('WireGuardInterface') or not clientaddr or not is_valid_ipv4(clientaddr):
         raise ValueError("Configuration file path and client address must be correctly provided.")
     
     try:
 
-        client_priv, client_pub = wgexec.generate_keypair()
-        serverconfig = wgc.WGConfig(config['wgconfigfile'])
-        serverpubkey = wgexec.get_publickey(serverconfig.get_interface()['PrivateKey'])
+        ClientPriv, ClientPub = wgexec.generate_keypair()
+        ServerConfig = wgc.WGConfig(config['WireGuardInterface'])
+        ServerConfig.read_file()
+        ServerPubkey = wgexec.get_publickey(ServerConfig.interface['PrivateKey'])
 
-        lancidr = config['lancidr']
-        serverendpoint = config['serverendpoint']
+        LanCIDR = config.get('LanCIDR')
+        ServerEndpoint = config.get('ServerEndpoint')
         client_config = ClientTemplate.format(
-            privkey=client_priv,
+            privkey=ClientPriv,
             clientaddr=clientaddr,
-            serverpubkey=serverpubkey,
-            lancidr=lancidr,
-            serverendpoint=serverendpoint
+            serverpubkey=ServerPubkey,
+            lancidr=LanCIDR,
+            serverendpoint=ServerEndpoint
         )
 
-        serverconfig.read_file()
-        serverconfig.add_peer(client_pub, comment)
-        serverconfig.add_attr(client_pub, 'AllowedIPs', f'{clientaddr}/32')
-        serverconfig.write_file()
+        ServerConfig.read_file()
+        ServerConfig.add_peer(ClientPub, comment)
+        ServerConfig.add_attr(ClientPub, 'AllowedIPs', f'{clientaddr}/32')
+        ServerConfig.write_file()
     except Exception as e:
-        raise Exception(f"Error generating client configuration: {e}")
-    try:
-        os.system(f"sudo wg-quick down {config['wgconfigfile']} && sudo wg-quick up {config['wgconfigfile']}")
-    except Exception as e:
-        raise Exception(f"Error restarting WireGuard: {e}")
+        raise e
+    if config.getboolean('RestartWG', fallback=False):
+        try:
+            os.system(f"sudo wg-quick down {config['WireGuardInterface']} && sudo wg-quick up {config['WireGuardInterface']}")
+        except Exception as e:
+            raise Exception(f"Error restarting WireGuard: {e}")
 
     return client_config
+
+
+def del_peer(config:configparser.SectionProxy, clientpubkey:str):
+    """
+    Delete a peer from the WireGuard configuration.
+    
+    Args:
+        config (configparser.SectionProxy): Configuration section proxy object for the WireGuard config file.
+        clientpubkey (str): The public key of the client to be removed.
+
+    Raises:
+        ValueError: If the configuration file path is not provided or if the client public key is not valid.
+        Exception: If there is an error reading or writing the configuration file.
+    """
+    if not config.get('WireGuardInterface') or not clientpubkey:
+        raise ValueError("Configuration file path and client public key must be provided.")
+    
+    try:
+        serverconfig = wgc.WGConfig(config.get('WireGuardInterface'))
+        serverconfig.read_file()
+        serverconfig.del_peer(clientpubkey)
+        serverconfig.write_file()
+    except Exception as e:
+        raise Exception(f"Error deleting peer: {e}")
+    
+    if config.getboolean('RestartWG', fallback=False):
+        try:
+            os.system(f"sudo wg-quick down {config.get('WireGuardInterface')} && sudo wg-quick up {config.get('WireGuardInterface')}")
+        except Exception as e:
+            raise Exception(f"Error restarting WireGuard: {e}")
 
 
 
