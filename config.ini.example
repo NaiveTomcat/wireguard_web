@@ -1,0 +1,12 @@
+[WireGuard]
+# Name of the WireGuard interface
+WireGuardInterface = wg0
+# CIDR for the LAN
+LanCIDR = 10.0.0.0/24
+# Public endpoint of the WireGuard server
+ServerEndpoint = wg.example.com:51820
+# Whether to restart WireGuard after changes
+RestartWG = True
+
+[WebServer]
+UsersDatabase = users.db
