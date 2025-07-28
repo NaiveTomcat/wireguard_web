@@ -41,8 +41,8 @@ def get_peers_comment(config:configparser.SectionProxy):
     """
     if not config.get('WireGuardInterface'):
         raise ValueError("Configuration file path must be provided. Current value: {}".format(config.get('WireGuardInterface')))
-    if not os.path.exists(config['WireGuardInterface']):
-        raise ValueError("Configuration file does not exist. current value: {}".format(config['WireGuardInterface']))
+    # if not os.path.exists(config['WireGuardInterface']):
+    #     raise ValueError("Configuration file does not exist. current value: {}".format(config['WireGuardInterface']))
     try:
         serverconfig = wgc.WGConfig(config['WireGuardInterface'])
         serverconfig.read_file()
